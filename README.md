@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Complete 16-Line Holy Quran with Authentic Urdu Translation</strong><br />
+  <strong>Complete Holy Quran with Authentic Urdu Translation</strong><br />
   A high-performance, mobile-first Progressive Web App (PWA) with full offline support, visual coordinate bookmarking, and instant search.
 </p>
 
@@ -22,7 +22,7 @@
 
 ## ✨ Features
 
-- **📖 16-Line Tajweed Quran with Urdu Translation**: High-resolution, readable pages formatted in the traditional 16-line subcontinental script with authentic Urdu translation under each line.
+- **📖 Tajweed Quran with Urdu Translation**: High-resolution, readable pages formatted in the traditional 16-line subcontinental script with authentic Urdu translation under each line.
 - **⚡ 100% Offline Capability**: Built with Workbox Service Workers and Dexie.js (IndexedDB). Cache the complete Quran once and read uninterrupted without an active internet connection.
 - **📌 Precision Visual Coordinate Bookmarking**: Long-press or right-click anywhere on a Quran page to place a pinpoint bookmark directly on an Ayah. Assign custom titles, notes, and color tags.
 - **🔍 Intelligent Instant Search & Fuzzy Alias Matching**:
