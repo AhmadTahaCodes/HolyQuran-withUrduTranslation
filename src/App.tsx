@@ -41,7 +41,7 @@ export function App() {
 
   const { theme, toggleTheme, setTheme } = useTheme();
   const { allBookmarks, addBookmark, removeBookmark, updateBookmarkNote } = useBookmarks(activePage);
-  const { userName, saveUserName, isFirstVisit, setIsFirstVisit } = useUserProfile();
+  const { userName, saveUserName, isFirstVisit, setIsFirstVisit, completeFirstVisit } = useUserProfile();
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -199,7 +199,7 @@ export function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 sepia:bg-[#fbf5e6] text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+    <div className="flex flex-col h-[100dvh] overflow-hidden bg-slate-50 dark:bg-slate-950 sepia:bg-[#fbf5e6] text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-150 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
       {/* Unified Top Header Bar */}
       {!isZenMode && (
         <Header
@@ -289,9 +289,14 @@ export function App() {
       {/* First Visit Personalized Welcome Modal */}
       <WelcomeModal
         isOpen={isFirstVisit}
+        initialName={userName}
         onSaveName={(name) => saveUserName(name)}
-        onClose={() => setIsFirstVisit(false)}
+        onClose={completeFirstVisit}
+        canInstall={canInstall}
+        onInstallApp={handleInstallApp}
+        language={language}
       />
+
 
       {/* Slide-Over Navigation Drawer */}
       <NavigationDrawer

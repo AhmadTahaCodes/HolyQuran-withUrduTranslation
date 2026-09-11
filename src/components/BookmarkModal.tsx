@@ -53,52 +53,56 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 sepia:bg-[#fffdf5] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/80">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <Pin className="w-5 h-5" />
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] bg-slate-50 dark:bg-slate-950/60 sepia:bg-[#fbf5e6]">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Pin className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 sepia:text-[#2d2417]">
                 {existingBookmark ? 'Edit Bookmark Note' : 'Add Coordinate Bookmark'}
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 sepia:text-[#78664f]">
                 Page {pageNumber} • Surah {meta.surah.name_english} ({meta.surah.name_arabic})
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="w-9 h-9 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-800 sepia:hover:bg-[#f2e9d2] rounded-xl transition-colors flex items-center justify-center active:scale-[0.97]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-4">
           {/* Relative Position Badge */}
-          <div className="flex items-center justify-between text-xs px-3 py-2 bg-slate-100 dark:bg-slate-800/60 rounded-xl text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50">
+          <div className="flex items-center justify-between text-xs px-3 py-1.5 bg-slate-100 dark:bg-slate-950/60 sepia:bg-[#f2e9d2] rounded-xl text-slate-700 dark:text-slate-300 sepia:text-[#2d2417] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9]">
             <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
-              Relative Position: Y={Math.round(yRatio * 100)}% • X={Math.round(xRatio * 100)}%
+              Position: Y={Math.round(yRatio * 100)}% • X={Math.round(xRatio * 100)}%
             </span>
             <span className="text-slate-500 dark:text-slate-400 font-mono">Juz {meta.juzNumber}</span>
           </div>
 
           {/* Color Selector */}
           <div>
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Pin Color Tag</label>
-            <div className="flex items-center space-x-3">
+            <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 sepia:text-[#78664f] mb-1.5">
+              Pin Color Tag
+            </label>
+            <div className="flex items-center space-x-2.5">
               {PALETTE.map((c) => (
                 <button
                   key={c.hex}
                   type="button"
                   onClick={() => setSelectedColor(c.hex)}
-                  className={`w-7 h-7 rounded-full transition-transform flex items-center justify-center ${
-                    selectedColor === c.hex ? 'scale-125 ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900' : 'hover:scale-110 opacity-70'
+                  className={`w-7 h-7 rounded-full transition-all duration-150 active:scale-[0.96] flex items-center justify-center ${
+                    selectedColor === c.hex
+                      ? 'scale-110 ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-sm'
+                      : 'hover:scale-105 opacity-75'
                   }`}
                   style={{ backgroundColor: c.hex }}
                 />
@@ -108,7 +112,7 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
 
           {/* Note Input */}
           <div>
-            <label htmlFor="bookmarkNoteInput" className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">
+            <label htmlFor="bookmarkNoteInput" className="block text-xs font-semibold text-slate-500 dark:text-slate-400 sepia:text-[#78664f] mb-1.5">
               Personal Reflection / Note (Optional)
             </label>
             <textarea
@@ -117,12 +121,12 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Write your note, reflection, or recitation marker..."
-              className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-800 dark:text-slate-100 text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full px-3 py-2 bg-white dark:bg-slate-950 sepia:bg-[#fffdf7] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-xl text-slate-900 dark:text-slate-100 sepia:text-[#2d2417] text-xs sm:text-sm placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition-colors"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-1">
             {existingBookmark && onDelete ? (
               <button
                 type="button"
@@ -130,7 +134,7 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
                   if (existingBookmark.id) onDelete(existingBookmark.id);
                   onClose();
                 }}
-                className="flex items-center space-x-1.5 px-3 py-2 text-xs font-medium text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors active:scale-[0.97]"
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Delete Pin</span>
@@ -141,15 +145,15 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                className="px-3.5 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-400 sepia:text-[#78664f] hover:bg-slate-100 dark:hover:bg-slate-800 sepia:hover:bg-[#f2e9d2] rounded-xl transition-colors active:scale-[0.97]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex items-center space-x-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-lg transition-all"
+                className="flex items-center space-x-1.5 px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-xs transition-colors active:scale-[0.97]"
               >
-                <Save className="w-4 h-4" />
+                <Save className="w-3.5 h-3.5" />
                 <span>Save Pin</span>
               </button>
             </div>
@@ -159,3 +163,5 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
     </div>
   );
 };
+
+export default BookmarkModal;

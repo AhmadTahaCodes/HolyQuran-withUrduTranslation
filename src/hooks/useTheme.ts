@@ -25,6 +25,17 @@ export function useTheme() {
     } catch (e) {
       console.warn('Failed to save theme in localStorage:', e);
     }
+
+    // Synchronize PWA / Mobile Status Bar Theme Color
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      const themeColors: Record<Theme, string> = {
+        dark: '#090d16',
+        sepia: '#fbf5e6',
+        light: '#fbf9f3'
+      };
+      metaTheme.setAttribute('content', themeColors[theme]);
+    }
   }, [theme]);
 
   const toggleTheme = () => {

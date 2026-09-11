@@ -11,14 +11,26 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: {
-        enabled: true
+        enabled: false
       },
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: [
+        'favicon.ico',
+        'favicon-16x16.png',
+        'favicon-32x32.png',
+        'apple-touch-icon.png',
+        'pwa-192x192.png',
+        'pwa-512x512.png',
+        'favicon.svg',
+        'icons.svg',
+        'pages/page_000.webp',
+        'pages/page_001.webp',
+        'pages/page_002.webp'
+      ],
       manifest: {
         name: 'The Holy Quran - with Urdu Translation',
         short_name: 'Holy Quran',
         description: 'Complete 16-line Holy Quran with Urdu Translation. 100% offline, coordinate bookmarking, and instant search.',
-        theme_color: '#059669',
+        theme_color: '#090d16',
         background_color: '#090d16',
         display: 'standalone',
         orientation: 'any',
@@ -41,11 +53,18 @@ export default defineConfig({
             sizes: '180x180',
             type: 'image/png'
           }
-        ]
+        ],
+        scope: '/'
       },
       workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
         maximumFileSizeToCacheInBytes: 5000000,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webp}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
+        globIgnores: ['**/node_modules/**/*', '**/pages/**/*'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -76,13 +95,16 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|webp)$/i,
+            urlPattern: ({ url }) => url.pathname.startsWith('/pages/') || /\.(?:png|jpg|jpeg|svg|webp)$/i.test(url.pathname),
             handler: 'CacheFirst',
             options: {
               cacheName: 'quran-page-images',
               expiration: {
                 maxEntries: 850,
                 maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
               }
             }
           }

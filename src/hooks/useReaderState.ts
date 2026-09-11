@@ -66,7 +66,7 @@ export function useReaderState() {
     } catch {
       // ignore
     }
-    return 'single';
+    return 'continuous';
   });
 
   const [activeView, setActiveViewState] = useState<ActiveView>(() => {

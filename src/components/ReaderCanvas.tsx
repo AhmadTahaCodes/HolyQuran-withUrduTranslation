@@ -241,15 +241,40 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
 
   const handleImageError = async (pageNum: number) => {
     if (failedImages[pageNum]) return;
+    const targetNum = pageNum - 1 + pageOffset;
+    const padded = String(targetNum).padStart(3, '0');
+    const imgUrl = `/pages/page_${padded}.webp`;
+
+    // 1. Try CacheStorage directly
+    if ('caches' in window) {
+      try {
+        const cache = await caches.open('quran-page-images');
+        const matched = await cache.match(imgUrl);
+        if (matched) {
+          const blob = await matched.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          setOfflineImages(prev => ({ ...prev, [pageNum]: objectUrl }));
+          return;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    // 2. Try IndexedDB offlinePages
     try {
       const offline = await db.offlinePages.get(pageNum);
       if (offline?.dataUrlOrBlob) {
-        setOfflineImages(prev => ({ ...prev, [pageNum]: offline.dataUrlOrBlob }));
+        const src = offline.dataUrlOrBlob instanceof Blob
+          ? URL.createObjectURL(offline.dataUrlOrBlob)
+          : offline.dataUrlOrBlob;
+        setOfflineImages(prev => ({ ...prev, [pageNum]: src }));
         return;
       }
     } catch {
       // ignore
     }
+
     setFailedImages(prev => ({ ...prev, [pageNum]: true }));
   };
 
@@ -276,11 +301,11 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
       }`}
     >
       {/* Floating Controls Overlay (Zoom + Zen Fullscreen) */}
-      <div className="fixed bottom-16 sm:bottom-6 right-4 z-40 flex items-center space-x-1 p-1 bg-slate-900/90 dark:bg-slate-900/90 sepia:bg-[#2d2417]/90 text-slate-100 border border-slate-700/80 sepia:border-[#b45309]/50 rounded-2xl shadow-2xl backdrop-blur-md">
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] right-3 sm:right-4 z-40 flex items-center space-x-1 p-1 bg-white/90 dark:bg-slate-900/90 sepia:bg-[#f2e9d2]/90 text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-2xl shadow-xl backdrop-blur-md">
         {onToggleZenMode && (
           <button
             onClick={onToggleZenMode}
-            className="p-1.5 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95 text-emerald-400"
+            className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 sepia:hover:bg-[#e8dec3] rounded-xl transition-colors active:scale-[0.97] text-emerald-600 dark:text-emerald-400"
             title={isZenMode ? t.exitZenMode : t.zenMode}
           >
             {isZenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -288,17 +313,17 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         )}
         <button
           onClick={() => setZoomScale(prev => Math.min(2.5, prev + 0.2))}
-          className="p-1.5 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95"
+          className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 sepia:hover:bg-[#e8dec3] rounded-xl transition-colors active:scale-[0.97]"
           title="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
-        <span className="text-[11px] font-mono font-medium text-emerald-400 px-1.5">
+        <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 px-1">
           {Math.round(zoomScale * 100)}%
         </span>
         <button
           onClick={() => setZoomScale(prev => Math.max(0.8, prev - 0.2))}
-          className="p-1.5 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95"
+          className="w-8 h-8 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 sepia:hover:bg-[#e8dec3] rounded-xl transition-colors active:scale-[0.97]"
           title="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
@@ -306,17 +331,17 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         {zoomScale !== 1 && (
           <button
             onClick={() => setZoomScale(1)}
-            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95"
+            className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 sepia:hover:bg-[#e8dec3] rounded-xl transition-colors active:scale-[0.97]"
             title={t.resetZoom}
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {/* Quick Page Scrubber Bar (Floating at Bottom Center) */}
-      <div className="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 hidden xs:flex items-center space-x-2.5 px-3.5 py-1.5 bg-slate-900/90 dark:bg-slate-900/90 sepia:bg-[#2d2417]/90 border border-slate-700/80 sepia:border-[#b45309]/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs text-white max-w-[90vw]">
-        <span className="text-[11px] font-mono text-emerald-400 font-bold whitespace-nowrap">
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] left-1/2 -translate-x-1/2 z-40 hidden xs:flex items-center space-x-2.5 px-3.5 py-1.5 bg-white/90 dark:bg-slate-900/90 sepia:bg-[#f2e9d2]/90 border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-2xl shadow-xl backdrop-blur-md text-xs text-slate-800 dark:text-white sepia:text-[#2d2417] max-w-[90vw]">
+        <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap">
           {language === 'ur' ? `صفحہ ${toArabicNumerals(activePage)}` : `Pg ${activePage}`}
         </span>
         <input
@@ -325,7 +350,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
           max={TOTAL_PAGES}
           value={activePage}
           onChange={(e) => onPageChange(parseInt(e.target.value, 10))}
-          className="w-28 sm:w-44 accent-emerald-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+          className="w-28 sm:w-44 accent-emerald-500 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 sepia:bg-[#dfd3b9] rounded-lg"
           title="Scrub Pages 1 to 729"
         />
         <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
@@ -413,9 +438,9 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
               </div>
 
               {/* Bottom Page Info & Bookmark Bar */}
-              <div className="w-full flex items-center justify-between px-3 py-1.5 mt-1.5 bg-white/95 dark:bg-slate-900/95 sepia:bg-[#fffdf5]/95 border border-slate-200 dark:border-slate-800/80 sepia:border-[#dfd3b9] rounded-xl text-xs shadow-sm">
+              <div className="w-full flex items-center justify-between px-3.5 py-2 mt-1.5 bg-white/95 dark:bg-slate-900/95 sepia:bg-[#fffdf5]/95 border border-slate-200 dark:border-slate-800/80 sepia:border-[#dfd3b9] rounded-xl text-xs shadow-xs">
                 <div className="flex items-center space-x-2 min-w-0">
-                  <span className="font-bold text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] text-[11px] sm:text-xs truncate">
+                  <span className="font-semibold text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] text-[11px] sm:text-xs truncate">
                     {pageNum === 1 ? (
                       <span className="text-emerald-600 dark:text-emerald-400 font-bold">غِلَافُ القُرْآنِ (Cover)</span>
                     ) : (
@@ -434,7 +459,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
                     e.stopPropagation();
                     onAddBookmark(pageNum, 0.5, 0.5);
                   }}
-                  className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors shadow active:scale-95 flex-shrink-0"
+                  className="flex items-center space-x-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors active:scale-[0.97] flex-shrink-0 shadow-xs"
                   title="Add Bookmark Pin to Page"
                 >
                   <BookmarkIcon className="w-3.5 h-3.5" />
@@ -452,7 +477,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         <div className="py-6 flex justify-center w-full">
           <button
             onClick={() => onPageChange(Math.min(TOTAL_PAGES, activePage + 8))}
-            className="flex items-center space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-2xl shadow-xl transition-all active:scale-95"
+            className="flex items-center space-x-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-md transition-colors active:scale-[0.98]"
           >
             <span>Load Next Pages (towards Page {Math.min(TOTAL_PAGES, activePage + 8)})</span>
             <ChevronRight className="w-4 h-4 rotate-90" />

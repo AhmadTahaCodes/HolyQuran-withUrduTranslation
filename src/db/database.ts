@@ -23,7 +23,7 @@ export interface ReadingState {
 
 export interface OfflinePage {
   pageNumber: number;
-  dataUrlOrBlob: string; // Base64 or Blob URL of WebP page image
+  dataUrlOrBlob: string | Blob; // Blob, Base64, or SVG DataURL
   timestamp: number;
 }
 
