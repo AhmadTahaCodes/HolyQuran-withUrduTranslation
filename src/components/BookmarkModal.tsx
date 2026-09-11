@@ -32,11 +32,19 @@ export const BookmarkModal: React.FC<BookmarkModalProps> = ({
   onSave,
   onDelete
 }) => {
-  if (!isOpen) return null;
-
   const meta = getPageMetadata(pageNumber);
   const [note, setNote] = useState(existingBookmark?.note || '');
   const [selectedColor, setSelectedColor] = useState(existingBookmark?.color || '#059669');
+
+  // Track props to synchronize state when editing a different bookmark
+  const [prevBookmark, setPrevBookmark] = useState(existingBookmark);
+  if (existingBookmark !== prevBookmark) {
+    setPrevBookmark(existingBookmark);
+    setNote(existingBookmark?.note || '');
+    setSelectedColor(existingBookmark?.color || '#059669');
+  }
+
+  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

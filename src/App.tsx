@@ -32,16 +32,43 @@ export function App() {
     isDrawerOpen,
     setIsDrawerOpen,
     pageOffset,
-    updatePageOffset
+    updatePageOffset,
+    language,
+    setLanguage,
+    isZenMode,
+    setIsZenMode
   } = useReaderState();
 
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, setTheme } = useTheme();
   const { allBookmarks, addBookmark, removeBookmark, updateBookmarkNote } = useBookmarks(activePage);
   const { userName, saveUserName, isFirstVisit, setIsFirstVisit } = useUserProfile();
 
+  // PWA Install Prompt State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setCanInstall(true);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setCanInstall(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   // UI Modals State
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [isBookmarkManagerOpen, setIsBookmarkManagerOpen] = useState(false);
   const [isOfflineManagerOpen, setIsOfflineManagerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -55,7 +82,7 @@ export function App() {
     existingBookmark?: Bookmark | null;
   }>({
     isOpen: false,
-    pageNumber: 1,
+    pageNumber: 2,
     yRatio: 0.5,
     xRatio: 0.5,
     existingBookmark: null
@@ -73,9 +100,23 @@ export function App() {
     };
   }, []);
 
-  // Keyboard Navigation & Shortcuts (Arrow Keys, Ctrl+K)
+  // Keyboard Navigation & Shortcuts (Arrow Keys, Ctrl+K, Escape)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape to close modals or exit Zen mode
+      if (e.key === 'Escape') {
+        if (isZenMode) {
+          setIsZenMode(false);
+          return;
+        }
+        setIsSearchModalOpen(false);
+        setIsOfflineManagerOpen(false);
+        setIsSettingsOpen(false);
+        setIsDrawerOpen(false);
+        setBookmarkModalState(prev => ({ ...prev, isOpen: false }));
+        return;
+      }
+
       // Ctrl+K / Cmd+K to open Search Modal
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -101,14 +142,14 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [prevPage, nextPage, activeView]);
+  }, [prevPage, nextPage, activeView, isZenMode, setIsZenMode, setIsDrawerOpen]);
 
   // Open Reader directly to specific page
   const handleOpenReaderPage = (pageNumber?: number) => {
     if (pageNumber !== undefined) {
       goToPage(pageNumber);
     }
-    setActiveView('reader');
+    setActiveView('reader', pageNumber);
   };
 
   // Open Bookmark Modal on Canvas Long-Press / Right-Click
@@ -153,42 +194,56 @@ export function App() {
     }
   };
 
-  return (
-    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-200">
-      {/* Header Bar */}
-      <Header
-        activePage={activePage}
-        onPageChange={handleOpenReaderPage}
-        onOpenDrawer={() => setIsDrawerOpen(true)}
-        onOpenSearchModal={() => setIsSearchModalOpen(true)}
-        onOpenBookmarkManager={() => setIsBookmarkManagerOpen(true)}
-        onOpenOfflineManager={() => setIsOfflineManagerOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        isOnline={isOnline}
-        userName={userName}
-        activeView={activeView}
-        onSelectView={setActiveView}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+  const toggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ur' : 'en');
+  };
 
-      {/* Main View Area: Home Screen vs Reader Canvas */}
+  return (
+    <div className="flex flex-col h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 sepia:bg-[#fbf5e6] text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] font-sans antialiased selection:bg-emerald-500 selection:text-white transition-colors duration-200">
+      {/* Unified Top Header Bar */}
+      {!isZenMode && (
+        <Header
+          activePage={activePage}
+          onPageChange={handleOpenReaderPage}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+          onOpenSearchModal={() => setIsSearchModalOpen(true)}
+          onOpenOfflineManager={() => setIsOfflineManagerOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          isOnline={isOnline}
+          userName={userName}
+          activeView={activeView}
+          onSelectView={setActiveView}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          language={language}
+          onToggleLanguage={toggleLanguage}
+          canInstall={canInstall}
+          onInstallApp={handleInstallApp}
+        />
+      )}
+
+      {/* Main View Area: Home vs Reader vs Bookmarks */}
       <main className="flex-1 flex flex-col relative overflow-hidden">
-        {activeView === 'home' ? (
+        {activeView === 'home' && (
           <HomeScreen
             userName={userName}
             activePage={activePage}
             onOpenReader={handleOpenReaderPage}
             onOpenDrawer={() => setIsDrawerOpen(true)}
             onOpenSearch={() => setIsSearchModalOpen(true)}
-            onOpenBookmarks={() => setIsBookmarkManagerOpen(true)}
+            onOpenBookmarks={() => setActiveView('bookmarks')}
             onOpenOffline={() => setIsOfflineManagerOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
             totalBookmarks={allBookmarks.length}
+            language={language}
+            canInstall={canInstall}
+            onInstallApp={handleInstallApp}
           />
-        ) : (
+        )}
+
+        {activeView === 'reader' && (
           <ReaderCanvas
             activePage={activePage}
             onPageChange={goToPage}
@@ -197,19 +252,39 @@ export function App() {
             onAddBookmark={handleAddBookmarkClick}
             onSelectBookmarkPin={handleSelectBookmarkPin}
             pageOffset={pageOffset}
+            language={language}
+            isZenMode={isZenMode}
+            onToggleZenMode={() => setIsZenMode(prev => !prev)}
+          />
+        )}
+
+        {activeView === 'bookmarks' && (
+          <BookmarkManager
+            isOpen={true}
+            isPageView={true}
+            onClose={() => setActiveView('home')}
+            bookmarks={allBookmarks}
+            onSelectPage={handleOpenReaderPage}
+            onDeleteBookmark={removeBookmark}
+            onEditBookmark={handleSelectBookmarkPin}
           />
         )}
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <MobileNavbar
-        activeTab={activeView}
-        onSelectTab={setActiveView}
-        onOpenDrawer={() => setIsDrawerOpen(true)}
-        onOpenSearch={() => setIsSearchModalOpen(true)}
-        onOpenBookmarks={() => setIsBookmarkManagerOpen(true)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
-      />
+      {/* Mobile Bottom Navigation Bar (Hidden during Zen Mode) */}
+      {!isZenMode && (
+        <MobileNavbar
+          activeTab={activeView}
+          onSelectTab={setActiveView}
+          onOpenDrawer={() => setIsDrawerOpen(true)}
+          onOpenSearch={() => setIsSearchModalOpen(true)}
+          onOpenBookmarks={() => setActiveView('bookmarks')}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          language={language}
+          isZenMode={isZenMode}
+          bookmarkCount={allBookmarks.length}
+        />
+      )}
 
       {/* First Visit Personalized Welcome Modal */}
       <WelcomeModal
@@ -229,6 +304,7 @@ export function App() {
         userName={userName}
         onUpdateUserName={saveUserName}
         pageOffset={pageOffset}
+        language={language}
       />
 
       {/* Instant Search Modal */}
@@ -238,16 +314,7 @@ export function App() {
         onSelectPage={handleOpenReaderPage}
         pageOffset={pageOffset}
         onUpdatePageOffset={updatePageOffset}
-      />
-
-      {/* Dedicated Bookmark Manager Modal */}
-      <BookmarkManager
-        isOpen={isBookmarkManagerOpen}
-        onClose={() => setIsBookmarkManagerOpen(false)}
-        bookmarks={allBookmarks}
-        onSelectPage={handleOpenReaderPage}
-        onDeleteBookmark={removeBookmark}
-        onEditBookmark={handleSelectBookmarkPin}
+        language={language}
       />
 
       {/* Coordinate Pin Add/Edit Modal */}
@@ -266,6 +333,7 @@ export function App() {
       <OfflineManager
         isOpen={isOfflineManagerOpen}
         onClose={() => setIsOfflineManagerOpen(false)}
+        language={language}
       />
 
       {/* Application Settings Modal */}
@@ -274,6 +342,7 @@ export function App() {
         onClose={() => setIsSettingsOpen(false)}
         theme={theme}
         onToggleTheme={toggleTheme}
+        setTheme={setTheme}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         pageOffset={pageOffset}
@@ -281,6 +350,10 @@ export function App() {
         userName={userName}
         onUpdateUserName={saveUserName}
         onOpenOfflineManager={() => setIsOfflineManagerOpen(true)}
+        language={language}
+        onSetLanguage={setLanguage}
+        canInstall={canInstall}
+        onInstallApp={handleInstallApp}
       />
     </div>
   );

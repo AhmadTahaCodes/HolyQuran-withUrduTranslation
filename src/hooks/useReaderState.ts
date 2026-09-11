@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../db/database';
 import quranMeta from '../data/quran_meta.json';
+import type { Language } from '../utils/i18n';
 
 export type ViewMode = 'single' | 'dual' | 'continuous';
-export type ActiveView = 'home' | 'reader';
+export type ActiveView = 'home' | 'reader' | 'bookmarks';
 
 const LOCAL_STORAGE_KEY = 'quran_pwa_active_state';
 const OFFSET_STORAGE_KEY = 'quran_pwa_page_offset';
-const TOTAL_PAGES = quranMeta.total_pages || 728;
+const LANG_STORAGE_KEY = 'quran_pwa_language';
+export const TOTAL_PAGES = quranMeta.total_pages || 729;
 
 interface SavedState {
   activePage: number;
@@ -18,7 +20,26 @@ interface SavedState {
 }
 
 export function useReaderState() {
+  // Read initial view and page from URL hash if present
+  const getInitialRoute = (): { view: ActiveView; page: number } => {
+    const hash = window.location.hash.toLowerCase();
+    if (hash.startsWith('#reader')) {
+      const pageMatch = hash.match(/page=(\d+)/) || hash.match(/\/(\d+)/);
+      const p = pageMatch ? parseInt(pageMatch[1], 10) : 1;
+      return { view: 'reader', page: Math.max(1, Math.min(TOTAL_PAGES, p)) };
+    }
+    if (hash.startsWith('#bookmarks')) {
+      return { view: 'bookmarks', page: 1 };
+    }
+    return { view: 'home', page: 1 };
+  };
+
+  const initialRoute = getInitialRoute();
+
   const [activePage, setActivePage] = useState<number>(() => {
+    if (initialRoute.view === 'reader' && initialRoute.page) {
+      return initialRoute.page;
+    }
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
@@ -30,7 +51,7 @@ export function useReaderState() {
     } catch (e) {
       console.warn("Failed to parse local reading state:", e);
     }
-    return 1;
+    return 2;
   });
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -42,52 +63,111 @@ export function useReaderState() {
           return parsed.viewMode;
         }
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return 'single';
   });
 
-  const [activeView, setActiveView] = useState<ActiveView>(() => {
+  const [activeView, setActiveViewState] = useState<ActiveView>(() => {
+    if (['home', 'reader', 'bookmarks'].includes(initialRoute.view)) {
+      return initialRoute.view;
+    }
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
         const parsed: SavedState = JSON.parse(saved);
-        if (parsed.activeView === 'home' || parsed.activeView === 'reader') {
-          return parsed.activeView;
+        if (['home', 'reader', 'bookmarks'].includes(parsed.activeView as any)) {
+          return parsed.activeView as ActiveView;
         }
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return 'home';
   });
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(() => {
+  const [language, setLanguageState] = useState<Language>(() => {
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (saved) {
-        const parsed: SavedState = JSON.parse(saved);
-        if (typeof parsed.isDrawerOpen === 'boolean') {
-          return parsed.isDrawerOpen;
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-    return false;
-  });
-
-  const [pageOffset, setPageOffset] = useState<number>(() => {
-    try {
-      localStorage.removeItem(OFFSET_STORAGE_KEY);
+      const saved = localStorage.getItem(LANG_STORAGE_KEY);
+      if (saved === 'en' || saved === 'ur') return saved;
     } catch {
       // ignore
     }
-    return 0;
+    return 'en';
   });
 
+  const [isZenMode, setIsZenMode] = useState<boolean>(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [pageOffset, setPageOffset] = useState<number>(0);
   const [scrollPosition, setScrollPosition] = useState<number>(0);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, lang);
+    } catch (e) {
+      console.warn("Failed to save language:", e);
+    }
+  };
+
+  // Sync state to URL hash with History API (Prevents App Closure on Mobile Back Button)
+  const setActiveView = useCallback((newView: ActiveView, pageNum?: number) => {
+    const targetPage = pageNum || activePage;
+    let newHash = '#home';
+    if (newView === 'reader') {
+      newHash = `#reader?page=${targetPage}`;
+    } else if (newView === 'bookmarks') {
+      newHash = '#bookmarks';
+    }
+
+    if (window.location.hash !== newHash) {
+      window.history.pushState({ view: newView, page: targetPage }, '', newHash);
+    }
+
+    setActiveViewState(newView);
+    if (pageNum) {
+      setActivePage(Math.max(1, Math.min(TOTAL_PAGES, pageNum)));
+    }
+  }, [activePage]);
+
+  // Listen to Browser Back / Forward buttons (popstate)
+  useEffect(() => {
+    const handlePopState = () => {
+      // If a modal or drawer is open, close it first without navigating view
+      if (isDrawerOpen) {
+        setIsDrawerOpen(false);
+        return;
+      }
+
+      const hash = window.location.hash.toLowerCase();
+      if (hash.startsWith('#reader')) {
+        const pageMatch = hash.match(/page=(\d+)/) || hash.match(/\/(\d+)/);
+        if (pageMatch) {
+          const p = parseInt(pageMatch[1], 10);
+          setActivePage(Math.max(1, Math.min(TOTAL_PAGES, p)));
+        }
+        setActiveViewState('reader');
+      } else if (hash.startsWith('#bookmarks')) {
+        setActiveViewState('bookmarks');
+      } else {
+        setActiveViewState('home');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isDrawerOpen]);
+
+  // Update hash when activePage changes in reader view
+  useEffect(() => {
+    if (activeView === 'reader') {
+      const currentHash = `#reader?page=${activePage}`;
+      if (window.location.hash !== currentHash) {
+        window.history.replaceState({ view: 'reader', page: activePage }, '', currentHash);
+      }
+    }
+  }, [activePage, activeView]);
 
   // Save page calibration offset
   const updatePageOffset = (offset: number) => {
@@ -161,6 +241,10 @@ export function useReaderState() {
     pageOffset,
     updatePageOffset,
     scrollPosition,
-    setScrollPosition
+    setScrollPosition,
+    language,
+    setLanguage,
+    isZenMode,
+    setIsZenMode
   };
 }

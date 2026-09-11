@@ -12,50 +12,60 @@ import {
   type JuzMeta
 } from '../utils/searchIndex';
 
+import type { Language } from '../utils/i18n';
+import { translations } from '../utils/i18n';
+
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectPage: (pageNumber: number, applyOffset?: boolean) => void;
   pageOffset?: number;
   onUpdatePageOffset?: (offset: number) => void;
+  language?: Language;
 }
+
+const allSurahs = (quranMeta?.surahs || []) as SurahMeta[];
+const allJuzs = (quranMeta?.juzs || []) as JuzMeta[];
 
 export const SearchModal: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
   onSelectPage,
   pageOffset = 0,
-  onUpdatePageOffset
+  onUpdatePageOffset,
+  language = 'en'
 }) => {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const allSurahs = (quranMeta?.surahs || []) as SurahMeta[];
-  const allJuzs = (quranMeta?.juzs || []) as JuzMeta[];
+  const t = translations[language];
 
   // Focus input on open
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 100);
-    } else {
-      setQuery('');
+      const timer = setTimeout(() => inputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  const handleClose = () => {
+    setQuery('');
+    onClose();
+  };
 
   // Filter Surahs using normalized index engine
   const matchingSurahs = useMemo(() => {
     return searchSurahs(query, allSurahs);
-  }, [query, allSurahs]);
+  }, [query]);
 
   // Filter Juz using normalized index engine
   const matchingJuz = useMemo(() => {
     return searchJuzs(query, allJuzs);
-  }, [query, allJuzs]);
+  }, [query]);
 
   // Check if query matches specific Ayah (e.g. "2:255", "18:10", "Yasin 58")
   const ayahMatch = useMemo(() => {
     return parseAyahQuery(query, allSurahs);
-  }, [query, allSurahs]);
+  }, [query]);
 
   // Direct page number jump validator
   const directPageNum = useMemo(() => {
@@ -65,18 +75,24 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-16 p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div
+      onClick={handleClose}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-16 p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-2xl bg-white dark:bg-slate-900 sepia:bg-[#fffdf5] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+      >
         {/* Search Input Bar Header */}
-        <div className="flex items-center px-4 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70">
+        <div className="flex items-center px-4 py-3 border-b border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] bg-slate-50 dark:bg-slate-950/70 sepia:bg-[#fbf5e6]">
           <Search className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mr-3 flex-shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search Ayah (e.g. 2:255, Yasin 58), Surah, Juz, or Page 1-${TOTAL_PAGES}...`}
-            className="w-full bg-transparent border-none text-slate-800 dark:text-slate-100 text-sm sm:text-base placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
+            placeholder={t.searchPlaceholder}
+            className="w-full bg-transparent border-none text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] text-sm sm:text-base placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none"
           />
           {query && (
             <button
@@ -88,7 +104,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             </button>
           )}
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-2.5 py-1 text-xs text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors ml-2 font-mono"
           >
             ESC

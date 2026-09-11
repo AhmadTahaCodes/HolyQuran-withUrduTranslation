@@ -10,6 +10,7 @@ interface BookmarkManagerProps {
   onSelectPage: (pageNumber: number) => void;
   onDeleteBookmark: (id: number) => void;
   onEditBookmark: (bookmark: Bookmark) => void;
+  isPageView?: boolean;
 }
 
 const COLOR_FILTERS = [
@@ -27,7 +28,8 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({
   bookmarks,
   onSelectPage,
   onDeleteBookmark,
-  onEditBookmark
+  onEditBookmark,
+  isPageView = false
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('all');
@@ -82,54 +84,56 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({
           alert(`Successfully imported ${imported.length} bookmarks!`);
         }
       } catch (err) {
+        console.warn("Bookmark import error:", err);
         alert("Invalid bookmark JSON backup file format.");
       }
     };
     reader.readAsText(file);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isPageView) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <BookmarkIcon className="w-6 h-6 fill-amber-500/20" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Saved Bookmarks & Notes Manager</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Total {bookmarks.length} coordinate pins saved offline</p>
-            </div>
+  const content = (
+    <div className={`w-full max-w-4xl bg-white dark:bg-slate-900 sepia:bg-[#fffdf5] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-3xl shadow-xl overflow-hidden flex flex-col ${isPageView ? 'min-h-[500px]' : 'max-h-[85vh]'}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] bg-slate-50 dark:bg-slate-950/50 sepia:bg-[#fbf5e6]">
+        <div className="flex items-center space-x-3">
+          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <BookmarkIcon className="w-6 h-6 fill-amber-500/20" />
           </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 sepia:text-[#2d2417]">Saved Bookmarks & Notes</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 sepia:text-[#78664f]">Total {bookmarks.length} coordinate pins saved locally</p>
+          </div>
+        </div>
 
-          <div className="flex items-center space-x-2">
-            {/* Export & Import Buttons */}
-            <button
-              onClick={handleExportJSON}
-              className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700/60 transition-colors"
-              title="Export Bookmarks as JSON Backup"
-            >
-              <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              <span className="hidden sm:inline">Export</span>
-            </button>
+        <div className="flex items-center space-x-2">
+          {/* Export & Import Buttons */}
+          <button
+            onClick={handleExportJSON}
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 sepia:bg-[#f2e9d2] hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 sepia:text-[#2d2417] text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700/60 sepia:border-[#dfd3b9] transition-colors"
+            title="Export Bookmarks as JSON Backup"
+          >
+            <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
 
-            <label className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700/60 transition-colors cursor-pointer">
-              <Upload className="w-4 h-4 text-amber-500" />
-              <span className="hidden sm:inline">Import</span>
-              <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
-            </label>
+          <label className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 sepia:bg-[#f2e9d2] hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 sepia:text-[#2d2417] text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700/60 sepia:border-[#dfd3b9] transition-colors cursor-pointer">
+            <Upload className="w-4 h-4 text-amber-500" />
+            <span className="hidden sm:inline">Import</span>
+            <input type="file" accept=".json" onChange={handleImportJSON} className="hidden" />
+          </label>
 
+          {!isPageView && (
             <button
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors ml-2"
             >
               <X className="w-5 h-5" />
             </button>
-          </div>
+          )}
         </div>
+      </div>
 
         {/* Toolbar & Filters Bar */}
         <div className="p-4 bg-slate-50 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -238,7 +242,9 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({
                       <button
                         onClick={() => {
                           onSelectPage(bm.pageNumber);
-                          onClose();
+                          if (!isPageView) {
+                            onClose();
+                          }
                         }}
                         className="flex items-center space-x-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-md transition-colors ml-1"
                       >
@@ -253,6 +259,19 @@ export const BookmarkManager: React.FC<BookmarkManagerProps> = ({
           )}
         </div>
       </div>
+  );
+
+  if (isPageView) {
+    return (
+      <div className="w-full h-full overflow-y-auto max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 animate-fadeIn pb-24 sm:pb-12">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-fadeIn">
+      {content}
     </div>
   );
 };

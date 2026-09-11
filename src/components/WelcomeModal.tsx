@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Sparkles, Heart, Check, ArrowRight } from 'lucide-react';
+import { User, Sparkles, Heart, ArrowRight } from 'lucide-react';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -27,6 +27,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
 
   const handleSkip = () => {
     onSaveName('Reader');
+    onClose();
   };
 
   return (

@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Bookmark } from '../db/database';
-import { generateFallbackPageDataUrl, getPageMetadata } from '../utils/pageFallback';
+import { db, type Bookmark } from '../db/database';
+import { generateFallbackPageDataUrl, getPageMetadata, toArabicNumerals } from '../utils/pageFallback';
 import quranMeta from '../data/quran_meta.json';
 import { BookmarkPin } from './BookmarkPin';
-import { ZoomIn, ZoomOut, RotateCcw, Bookmark as BookmarkIcon, ChevronRight } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Bookmark as BookmarkIcon, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
+import type { Language } from '../utils/i18n';
+import { translations } from '../utils/i18n';
 
 interface ReaderCanvasProps {
   activePage: number;
@@ -13,6 +15,9 @@ interface ReaderCanvasProps {
   onAddBookmark: (pageNumber: number, yRatio: number, xRatio: number) => void;
   onSelectBookmarkPin: (bookmark: Bookmark) => void;
   pageOffset?: number;
+  language?: Language;
+  isZenMode?: boolean;
+  onToggleZenMode?: () => void;
 }
 
 const TOTAL_PAGES = quranMeta.total_pages || 729;
@@ -24,7 +29,10 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   bookmarks,
   onAddBookmark,
   onSelectBookmarkPin,
-  pageOffset = 0
+  pageOffset = 0,
+  language = 'en',
+  isZenMode = false,
+  onToggleZenMode
 }) => {
   const [zoomScale, setZoomScale] = useState<number>(1);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,11 +47,14 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
 
   // Track images that fail to load from /pages/page_XXX.webp to fallback
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
+  const [offlineImages, setOfflineImages] = useState<Record<number, string>>({});
 
   // Reset zoom on page change across view modes
-  useEffect(() => {
+  const [prevViewMode, setPrevViewMode] = useState(viewMode);
+  if (prevViewMode !== viewMode) {
+    setPrevViewMode(viewMode);
     setZoomScale(1);
-  }, [viewMode]);
+  }
 
   // Programmatic scroll-into-view (ONLY when activePage changed via button/drawer/search, NOT manual scroll)
   useEffect(() => {
@@ -142,7 +153,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>, pageNum: number) => {
     if (e.touches.length !== 1) return;
     const touch = e.touches[0];
-    const now = Date.now();
+    const now = e.timeStamp;
 
     // Check for Double-Tap (within 300ms)
     if (now - lastTapRef.current < 300) {
@@ -185,7 +196,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     const touch = e.changedTouches[0];
     const deltaX = touch.clientX - touchStartRef.current.x;
     const deltaY = touch.clientY - touchStartRef.current.y;
-    const duration = Date.now() - touchStartRef.current.time;
+    const duration = e.timeStamp - touchStartRef.current.time;
 
     // RTL Swipe Navigation in Single/Dual mode
     if (Math.abs(deltaX) > 40 && Math.abs(deltaY) < 70 && duration < 500 && zoomScale === 1 && viewMode !== 'continuous') {
@@ -212,8 +223,11 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     }
   };
 
-  // Get Page Image Src (WebP or fallback SVG)
+  // Get Page Image Src (IndexedDB cached, WebP, or fallback SVG)
   const getPageSrc = (pageNum: number) => {
+    if (offlineImages[pageNum]) {
+      return offlineImages[pageNum];
+    }
     if (failedImages[pageNum]) {
       return generateFallbackPageDataUrl(pageNum);
     }
@@ -225,7 +239,17 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     return `/pages/page_${padded}.webp`;
   };
 
-  const handleImageError = (pageNum: number) => {
+  const handleImageError = async (pageNum: number) => {
+    if (failedImages[pageNum]) return;
+    try {
+      const offline = await db.offlinePages.get(pageNum);
+      if (offline?.dataUrlOrBlob) {
+        setOfflineImages(prev => ({ ...prev, [pageNum]: offline.dataUrlOrBlob }));
+        return;
+      }
+    } catch {
+      // ignore
+    }
     setFailedImages(prev => ({ ...prev, [pageNum]: true }));
   };
 
@@ -242,16 +266,29 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
     for (let i = start; i <= end; i++) pagesToRender.push(i);
   }
 
+  const t = translations[language || 'en'];
+
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 w-full h-full min-h-[calc(100vh-3.5rem)] bg-slate-50 dark:bg-slate-950 flex flex-col items-center overflow-y-auto select-none p-2 sm:p-4 pb-24 sm:pb-8 transition-colors"
+      className={`relative flex-1 w-full h-full min-h-[calc(100vh-3.5rem)] bg-slate-50 dark:bg-slate-950 sepia:bg-[#fbf5e6] flex flex-col items-center overflow-y-auto select-none p-2 sm:p-4 transition-colors ${
+        isZenMode ? 'pt-2 pb-16' : 'pb-24 sm:pb-16'
+      }`}
     >
-      {/* Zoom Controls Overlay Floating Toolbar */}
-      <div className="fixed bottom-16 sm:bottom-6 right-4 z-40 flex items-center space-x-1 p-1 bg-slate-900/90 dark:bg-slate-900/90 text-slate-100 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-md">
+      {/* Floating Controls Overlay (Zoom + Zen Fullscreen) */}
+      <div className="fixed bottom-16 sm:bottom-6 right-4 z-40 flex items-center space-x-1 p-1 bg-slate-900/90 dark:bg-slate-900/90 sepia:bg-[#2d2417]/90 text-slate-100 border border-slate-700/80 sepia:border-[#b45309]/50 rounded-2xl shadow-2xl backdrop-blur-md">
+        {onToggleZenMode && (
+          <button
+            onClick={onToggleZenMode}
+            className="p-1.5 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95 text-emerald-400"
+            title={isZenMode ? t.exitZenMode : t.zenMode}
+          >
+            {isZenMode ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+        )}
         <button
           onClick={() => setZoomScale(prev => Math.min(2.5, prev + 0.2))}
-          className="p-1.5 hover:bg-slate-800 rounded-xl transition-colors active:scale-95"
+          className="p-1.5 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95"
           title="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
@@ -261,7 +298,7 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         </span>
         <button
           onClick={() => setZoomScale(prev => Math.max(0.8, prev - 0.2))}
-          className="p-1.5 hover:bg-slate-800 rounded-xl transition-colors active:scale-95"
+          className="p-1.5 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95"
           title="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
@@ -269,90 +306,126 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         {zoomScale !== 1 && (
           <button
             onClick={() => setZoomScale(1)}
-            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-xl transition-colors active:scale-95"
-            title="Reset Zoom"
+            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 sepia:hover:bg-[#433522] rounded-xl transition-colors active:scale-95"
+            title={t.resetZoom}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
         )}
       </div>
 
-      {/* Pages Container (Stationary Layout Bounds) */}
+      {/* Quick Page Scrubber Bar (Floating at Bottom Center) */}
+      <div className="fixed bottom-16 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 hidden xs:flex items-center space-x-2.5 px-3.5 py-1.5 bg-slate-900/90 dark:bg-slate-900/90 sepia:bg-[#2d2417]/90 border border-slate-700/80 sepia:border-[#b45309]/50 rounded-2xl shadow-2xl backdrop-blur-md text-xs text-white max-w-[90vw]">
+        <span className="text-[11px] font-mono text-emerald-400 font-bold whitespace-nowrap">
+          {language === 'ur' ? `صفحہ ${toArabicNumerals(activePage)}` : `Pg ${activePage}`}
+        </span>
+        <input
+          type="range"
+          min="1"
+          max={TOTAL_PAGES}
+          value={activePage}
+          onChange={(e) => onPageChange(parseInt(e.target.value, 10))}
+          className="w-28 sm:w-44 accent-emerald-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+          title="Scrub Pages 1 to 729"
+        />
+        <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
+          {TOTAL_PAGES}
+        </span>
+      </div>
+
+      {/* Pages Container */}
       <div
-        className={`w-full max-w-4xl flex ${
+        className={`w-full max-w-5xl flex ${
           viewMode === 'dual'
-            ? 'flex-row-reverse justify-center gap-2 sm:gap-4'
+            ? 'flex-row-reverse justify-center gap-3 sm:gap-6 items-start py-2'
             : viewMode === 'continuous'
             ? 'flex-col items-center gap-6 py-2'
-            : 'justify-center my-auto'
+            : 'justify-center items-center py-2 sm:py-3'
         }`}
       >
         {pagesToRender.map(pageNum => {
           const pageMeta = getPageMetadata(pageNum);
-          const pagePins = bookmarks.filter(b => b.pageNumber === pageNum);
+          const pagePins = (bookmarks || []).filter(b => b.pageNumber === pageNum);
           const isCurrentPage = pageNum === activePage;
           const pageZoom = isCurrentPage ? zoomScale : 1;
+          const availableHeight = isZenMode ? 'calc(100vh - 4.5rem)' : 'calc(100vh - 9.5rem)';
+          const singleWidthCalc = `min(calc(100vw - 2rem), calc((${availableHeight}) * 1100 / 1700 * ${pageZoom}))`;
+          const dualWidthCalc = `min(calc(50vw - 1.5rem), calc((${availableHeight}) * 1100 / 1700))`;
 
           return (
             <div
               key={pageNum}
               id={`quran-page-${pageNum}`}
-              className="flex flex-col items-center w-full transition-all duration-300 ease-out"
+              className="flex flex-col items-center transition-all duration-300 ease-out"
               style={{
-                maxWidth: pageZoom !== 1 ? `${Math.min(920, pageZoom * 620)}px` : '620px'
+                width: viewMode === 'continuous'
+                  ? '100%'
+                  : viewMode === 'dual'
+                  ? dualWidthCalc
+                  : singleWidthCalc,
+                maxWidth: viewMode === 'continuous'
+                  ? `${pageZoom !== 1 ? Math.min(960, pageZoom * 680) : 680}px`
+                  : `${Math.min(1000, 700 * pageZoom)}px`
               }}
             >
-              {/* Outer Scroll/Clip Frame around Page */}
+              {/* Quran Page Frame (Hugs the image precisely with zero wasted top/bottom space) */}
               <div
-                className={`relative w-full rounded-2xl border bg-white dark:bg-slate-900 shadow-xl dark:shadow-2xl transition-all duration-300 ease-out ${
+                onTouchStart={(e) => handleTouchStart(e, pageNum)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onClick={(e) => handlePageClick(e, pageNum)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const yRatio = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+                  const xRatio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  onAddBookmark(pageNum, yRatio, xRatio);
+                }}
+                className={`relative w-full cursor-pointer overflow-hidden rounded-2xl border bg-white dark:bg-slate-900 sepia:bg-[#fffdf5] shadow-2xl transition-all duration-300 ease-out ${
                   isCurrentPage
-                    ? 'border-emerald-500 ring-2 ring-emerald-500/40 shadow-emerald-950/20'
-                    : 'border-slate-200 dark:border-slate-800'
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/40 shadow-emerald-950/30'
+                    : 'border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9]'
                 }`}
+                style={{
+                  aspectRatio: '1100 / 1700'
+                }}
               >
-                {/* Scaled Page Image Frame */}
-                <div
-                  onTouchStart={(e) => handleTouchStart(e, pageNum)}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleTouchEnd}
-                  onClick={(e) => handlePageClick(e, pageNum)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const yRatio = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-                    const xRatio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                    onAddBookmark(pageNum, yRatio, xRatio);
-                  }}
-                  className="relative w-full aspect-[1/1.48] cursor-pointer overflow-hidden rounded-2xl"
-                >
-                  {/* WebP / Fallback SVG Image */}
-                  <img
-                    src={getPageSrc(pageNum)}
-                    onError={() => handleImageError(pageNum)}
-                    alt={`Quran Page ${pageNum}`}
-                    className="w-full h-full object-contain pointer-events-none"
-                    loading="eager"
-                  />
+                {/* Scanned Quran Page Image */}
+                <img
+                  src={getPageSrc(pageNum)}
+                  onError={() => handleImageError(pageNum)}
+                  alt={`Quran Page ${pageNum}`}
+                  className="w-full h-full object-contain block select-none pointer-events-none mx-auto"
+                  loading="eager"
+                />
 
-                  {/* Bookmark Pins Overlay */}
-                  {pagePins.map(pin => (
-                    <BookmarkPin
-                      key={pin.id}
-                      bookmark={pin}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectBookmarkPin(pin);
-                      }}
-                    />
-                  ))}
-                </div>
+                {/* Bookmark Pins Overlay */}
+                {pagePins.map(pin => (
+                  <BookmarkPin
+                    key={pin.id}
+                    bookmark={pin}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectBookmarkPin(pin);
+                    }}
+                  />
+                ))}
               </div>
 
-              {/* Bottom Page Info & Bookmark Bar (Positioned OUTSIDE the Image) */}
-              <div className="w-full flex items-center justify-between px-3.5 py-2 mt-1.5 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800/80 rounded-xl text-xs shadow-sm">
+              {/* Bottom Page Info & Bookmark Bar */}
+              <div className="w-full flex items-center justify-between px-3 py-1.5 mt-1.5 bg-white/95 dark:bg-slate-900/95 sepia:bg-[#fffdf5]/95 border border-slate-200 dark:border-slate-800/80 sepia:border-[#dfd3b9] rounded-xl text-xs shadow-sm">
                 <div className="flex items-center space-x-2 min-w-0">
-                  <span className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate">
-                    Pg {pageNum} - Surah {pageMeta.surah.name_english} <span className="text-emerald-600 dark:text-emerald-400 font-serif">({pageMeta.surah.name_arabic})</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-100 sepia:text-[#2d2417] text-[11px] sm:text-xs truncate">
+                    {pageNum === 1 ? (
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">غِلَافُ القُرْآنِ (Cover)</span>
+                    ) : (
+                      <>
+                        Pg {pageNum} - Surah {pageMeta.surah.name_english}{' '}
+                        <span className="text-emerald-600 dark:text-emerald-400 font-serif">
+                          ({pageMeta.surah.name_arabic})
+                        </span>
+                      </>
+                    )}
                   </span>
                 </div>
 
@@ -361,11 +434,12 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
                     e.stopPropagation();
                     onAddBookmark(pageNum, 0.5, 0.5);
                   }}
-                  className="flex items-center space-x-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors shadow active:scale-95 flex-shrink-0"
+                  className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors shadow active:scale-95 flex-shrink-0"
                   title="Add Bookmark Pin to Page"
                 >
                   <BookmarkIcon className="w-3.5 h-3.5" />
-                  <span>Bookmark</span>
+                  <span className="hidden xs:inline">{t.bookmarkThisPage}</span>
+                  <span className="xs:hidden">Pin</span>
                 </button>
               </div>
             </div>

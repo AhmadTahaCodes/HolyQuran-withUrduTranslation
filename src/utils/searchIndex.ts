@@ -1,6 +1,6 @@
 import quranMeta from '../data/quran_meta.json';
 
-export const TOTAL_PAGES = quranMeta.total_pages || 728;
+export const TOTAL_PAGES = quranMeta.total_pages || 729;
 
 export interface SurahMeta {
   id: number;

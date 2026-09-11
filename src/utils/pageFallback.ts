@@ -15,6 +15,24 @@ export function getPageMetadata(pageNumber: number): PageMeta {
   const totalPages = quranMeta.total_pages || 729;
   const page = Math.max(1, Math.min(totalPages, pageNumber));
   
+  if (page === 1) {
+    return {
+      pageNumber: 1,
+      surah: {
+        id: 0,
+        name_arabic: "غِلَافُ القُرْآنِ",
+        name_english: "Quran Cover",
+        name_translation: "The Holy Quran",
+        revelation_type: "Frontispiece",
+        total_ayahs: 0,
+        start_page: 1,
+        end_page: 1,
+        juz_start: 1
+      },
+      juzNumber: 1
+    };
+  }
+
   // Find primary surah starting on or covering this page (matches user page index)
   const surah = quranMeta.surahs
     .slice()

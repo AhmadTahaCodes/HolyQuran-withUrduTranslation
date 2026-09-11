@@ -1,8 +1,8 @@
 {
   "total_pages": 729,
   "surahs": [
-    { "id": 1, "name_arabic": "الفاتحة", "name_english": "Al-Fatihah", "name_translation": "The Opening", "revelation_type": "Meccan", "total_ayahs": 7, "start_page": 1, "end_page": 1, "juz_start": 1 },
-    { "id": 2, "name_arabic": "البقرة", "name_english": "Al-Baqarah", "name_translation": "The Cow", "revelation_type": "Medinan", "total_ayahs": 286, "start_page": 2, "end_page": 59, "juz_start": 1 },
+    { "id": 1, "name_arabic": "الفاتحة", "name_english": "Al-Fatihah", "name_translation": "The Opening", "revelation_type": "Meccan", "total_ayahs": 7, "start_page": 2, "end_page": 2, "juz_start": 1 },
+    { "id": 2, "name_arabic": "البقرة", "name_english": "Al-Baqarah", "name_translation": "The Cow", "revelation_type": "Medinan", "total_ayahs": 286, "start_page": 3, "end_page": 60, "juz_start": 1 },
     { "id": 3, "name_arabic": "آل عمران", "name_english": "Aal-E-Imran", "name_translation": "Family of Imran", "revelation_type": "Medinan", "total_ayahs": 200, "start_page": 60, "end_page": 92, "juz_start": 3 },
     { "id": 4, "name_arabic": "النساء", "name_english": "An-Nisa", "name_translation": "The Women", "revelation_type": "Medinan", "total_ayahs": 176, "start_page": 93, "end_page": 127, "juz_start": 4 },
     { "id": 5, "name_arabic": "المائدة", "name_english": "Al-Ma'idah", "name_translation": "The Table Spread", "revelation_type": "Medinan", "total_ayahs": 120, "start_page": 128, "end_page": 153, "juz_start": 6 },

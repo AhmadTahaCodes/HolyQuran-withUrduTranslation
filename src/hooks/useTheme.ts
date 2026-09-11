@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'sepia' | 'light';
 
 const THEME_KEY = 'quran_pwa_theme';
 
@@ -8,7 +8,7 @@ export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       const saved = localStorage.getItem(THEME_KEY);
-      if (saved === 'light' || saved === 'dark') return saved;
+      if (saved === 'light' || saved === 'dark' || saved === 'sepia') return saved;
     } catch {
       // ignore
     }
@@ -17,13 +17,9 @@ export function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    }
+    root.classList.remove('dark', 'light', 'sepia');
+    root.classList.add(theme);
+    
     try {
       localStorage.setItem(THEME_KEY, theme);
     } catch (e) {
@@ -32,7 +28,11 @@ export function useTheme() {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+    setTheme(prev => {
+      if (prev === 'dark') return 'sepia';
+      if (prev === 'sepia') return 'light';
+      return 'dark';
+    });
   };
 
   return {

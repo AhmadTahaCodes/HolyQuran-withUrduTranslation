@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const USER_NAME_KEY = 'quran_pwa_user_name';
 

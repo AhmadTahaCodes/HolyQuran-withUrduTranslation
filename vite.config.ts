@@ -10,30 +10,41 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pages/*.webp'],
+      devOptions: {
+        enabled: true
+      },
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'Quran Reading PWA',
-        short_name: 'QuranPWA',
-        description: 'Ultra-lightweight mobile-first Quran Reader PWA with offline page caching',
-        theme_color: '#0f172a',
+        name: 'The Holy Quran - with Urdu Translation',
+        short_name: 'Holy Quran',
+        description: 'Complete 16-line Holy Quran with Urdu Translation. 100% offline, coordinate bookmarking, and instant search.',
+        theme_color: '#059669',
         background_color: '#090d16',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: '/pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any maskable'
           },
           {
-            src: 'pwa-512x512.png',
+            src: '/pwa-512x512.png',
             sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          },
+          {
+            src: '/apple-touch-icon.png',
+            sizes: '180x180',
             type: 'image/png'
           }
         ]
       },
       workbox: {
+        maximumFileSizeToCacheInBytes: 5000000,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,json,webp}'],
         runtimeCaching: [
           {
@@ -42,7 +53,21 @@ export default defineConfig({
             options: {
               cacheName: 'google-fonts-cache',
               expiration: {
-                maxEntries: 10,
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 20,
                 maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
@@ -56,8 +81,8 @@ export default defineConfig({
             options: {
               cacheName: 'quran-page-images',
               expiration: {
-                maxEntries: 700,
-                maxAgeSeconds: 60 * 60 * 24 * 30
+                maxEntries: 850,
+                maxAgeSeconds: 60 * 60 * 24 * 365
               }
             }
           }

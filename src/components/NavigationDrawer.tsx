@@ -11,6 +11,8 @@ import {
   type JuzMeta
 } from '../utils/searchIndex';
 
+import type { Language } from '../utils/i18n';
+
 interface NavigationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,7 +23,21 @@ interface NavigationDrawerProps {
   userName: string;
   onUpdateUserName: (name: string) => void;
   pageOffset?: number;
+  language?: Language;
 }
+
+const MANZIL_LIST = [
+  { manzil: 1, name: 'Manzil 1', urdu: 'منزل ۱', page: 2, desc: 'Al-Fatihah to An-Nisa', startSurah: 'Al-Fatihah' },
+  { manzil: 2, name: 'Manzil 2', urdu: 'منزل ۲', page: 147, desc: 'Al-Maidah to At-Tawbah', startSurah: 'Al-Ma\'idah' },
+  { manzil: 3, name: 'Manzil 3', urdu: 'منزل ۳', page: 249, desc: 'Yunus to An-Nahl', startSurah: 'Yunus' },
+  { manzil: 4, name: 'Manzil 4', urdu: 'منزل ۴', page: 353, desc: 'Al-Isra to Al-Furqan', startSurah: 'Al-Isra' },
+  { manzil: 5, name: 'Manzil 5', urdu: 'منزل ۵', page: 483, desc: 'Ash-Shuara to Ya-Sin', startSurah: 'Ash-Shu\'ara' },
+  { manzil: 6, name: 'Manzil 6', urdu: 'منزل ۶', page: 579, desc: 'As-Saffat to Al-Hujurat', startSurah: 'As-Saffat' },
+  { manzil: 7, name: 'Manzil 7', urdu: 'منزل ۷', page: 677, desc: 'Qaf to An-Nas', startSurah: 'Qaf' }
+];
+
+const allSurahs = (quranMeta?.surahs || []) as SurahMeta[];
+const allJuzs = (quranMeta?.juzs || []) as JuzMeta[];
 
 export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   isOpen,
@@ -32,27 +48,23 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
   onDeleteBookmark,
   userName,
   onUpdateUserName,
-  pageOffset = 0
+  language = 'en'
 }) => {
-  const [activeTab, setActiveTab] = useState<'surah' | 'juz' | 'bookmark'>('surah');
+  const [activeTab, setActiveTab] = useState<'surah' | 'juz' | 'manzil' | 'bookmark'>('surah');
   const [searchQuery, setSearchQuery] = useState('');
   const [jumpPageInput, setJumpPageInput] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(userName || '');
 
-  // Safe dataset access
-  const allSurahs = (quranMeta?.surahs || []) as SurahMeta[];
-  const allJuzs = (quranMeta?.juzs || []) as JuzMeta[];
-
   // Filter Surahs based on search query using normalized index
   const filteredSurahs = useMemo(() => {
     return searchSurahs(searchQuery, allSurahs);
-  }, [searchQuery, allSurahs]);
+  }, [searchQuery]);
 
   // Filter Juz based on search query using normalized index
   const filteredJuz = useMemo(() => {
     return searchJuzs(searchQuery, allJuzs);
-  }, [searchQuery, allJuzs]);
+  }, [searchQuery]);
 
   // Direct Page Jump Submission
   const handlePageJump = (e: React.FormEvent) => {
@@ -195,41 +207,52 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950/90 p-1.5 gap-1">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] bg-slate-100 dark:bg-slate-950/90 sepia:bg-[#f2e9d2] p-1.5 gap-1 select-none">
           <button
             onClick={() => setActiveTab('surah')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 rounded-xl text-[11px] font-medium transition-all active:scale-95 ${
               activeTab === 'surah'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                ? 'bg-emerald-600 text-white shadow-md font-bold'
+                : 'text-slate-600 dark:text-slate-400 sepia:text-[#78664f] hover:bg-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Surahs ({filteredSurahs.length})</span>
+            <span>{language === 'ur' ? 'سورتیں' : 'Surahs'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('juz')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 rounded-xl text-[11px] font-medium transition-all active:scale-95 ${
               activeTab === 'juz'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                ? 'bg-emerald-600 text-white shadow-md font-bold'
+                : 'text-slate-600 dark:text-slate-400 sepia:text-[#78664f] hover:bg-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>Juz ({filteredJuz.length})</span>
+            <span>{language === 'ur' ? 'پارے' : 'Juz'}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('manzil')}
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 rounded-xl text-[11px] font-medium transition-all active:scale-95 ${
+              activeTab === 'manzil'
+                ? 'bg-emerald-600 text-white shadow-md font-bold'
+                : 'text-slate-600 dark:text-slate-400 sepia:text-[#78664f] hover:bg-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white'
+            }`}
+          >
+            <span>{language === 'ur' ? 'منازل' : 'Manzil'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('bookmark')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2 rounded-xl text-xs font-medium transition-all ${
+            className={`flex-1 flex items-center justify-center space-x-1 py-2 rounded-xl text-[11px] font-medium transition-all active:scale-95 ${
               activeTab === 'bookmark'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'
+                ? 'bg-emerald-600 text-white shadow-md font-bold'
+                : 'text-slate-600 dark:text-slate-400 sepia:text-[#78664f] hover:bg-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white'
             }`}
           >
             <BookmarkIcon className="w-3.5 h-3.5" />
-            <span>Saved ({bookmarks.length})</span>
+            <span>{language === 'ur' ? 'نشانات' : 'Saved'}</span>
           </button>
         </div>
 
@@ -319,6 +342,40 @@ export const NavigationDrawer: React.FC<NavigationDrawerProps> = ({
                 );
               })
             )
+          )}
+
+          {/* MANZIL LIST TAB */}
+          {activeTab === 'manzil' && (
+            MANZIL_LIST.map((m) => (
+              <div
+                key={m.manzil}
+                onClick={() => {
+                  onSelectPage(m.page);
+                  onClose();
+                }}
+                className={`flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/70 sepia:hover:bg-[#f2e9d2] cursor-pointer transition-colors group ${
+                  activePage >= m.page ? 'bg-teal-50/70 dark:bg-teal-500/10 border border-teal-500/30' : ''
+                }`}
+              >
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-xs font-mono font-bold text-teal-600 dark:text-teal-400 flex-shrink-0">
+                    M{m.manzil}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
+                      {language === 'ur' ? m.urdu : m.name}{' '}
+                      <span className="text-teal-600 dark:text-teal-400 font-semibold font-urdu">({m.urdu})</span>
+                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{m.desc}</div>
+                  </div>
+                </div>
+
+                <div className="text-right flex-shrink-0 ml-2">
+                  <div className="text-sm font-bold text-teal-600 dark:text-teal-400 font-urdu">{m.startSurah}</div>
+                  <div className="text-[10px] text-slate-400 font-mono">Page {m.page}</div>
+                </div>
+              </div>
+            ))
           )}
 
           {/* BOOKMARKS LIST TAB */}

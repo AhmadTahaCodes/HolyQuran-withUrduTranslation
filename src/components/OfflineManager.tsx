@@ -4,14 +4,17 @@ import { db } from '../db/database';
 import { generateFallbackPageDataUrl } from '../utils/pageFallback';
 import quranMeta from '../data/quran_meta.json';
 
+import type { Language } from '../utils/i18n';
+
 interface OfflineManagerProps {
   isOpen: boolean;
   onClose: () => void;
+  language?: Language;
 }
 
-const TOTAL_PAGES = quranMeta.total_pages || 728;
+const TOTAL_PAGES = quranMeta.total_pages || 729;
 
-export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose }) => {
+export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose, language = 'en' }) => {
   const [cachedCount, setCachedCount] = useState<number>(0);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadProgress, setDownloadProgress] = useState<{ current: number; total: number }>({ current: 0, total: TOTAL_PAGES });
@@ -28,9 +31,13 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose 
   };
 
   useEffect(() => {
+    let active = true;
     if (isOpen) {
-      refreshCacheCount();
+      db.offlinePages.count().then((count) => {
+        if (active) setCachedCount(count);
+      }).catch((e) => console.warn("Failed to read offline cache count:", e));
     }
+    return () => { active = false; };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -52,9 +59,9 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose 
           if (res.ok) {
             const blob = await res.blob();
             dataUrl = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
+              const r = new FileReader();
+              r.onloadend = () => resolve(r.result as string);
+              r.readAsDataURL(blob);
             });
           } else {
             dataUrl = generateFallbackPageDataUrl(p);
@@ -69,9 +76,9 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose 
           timestamp: Date.now()
         });
 
-        setDownloadProgress({ current: p - startPage + 1, total });
+        setDownloadProgress(prev => ({ ...prev, current: prev.current + 1 }));
       } catch (err) {
-        console.error(`Error caching page ${p}:`, err);
+        console.warn(`Failed to cache page ${p}:`, err);
       }
     }
 
@@ -91,16 +98,20 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 sepia:bg-[#fffdf5] border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] bg-slate-50 dark:bg-slate-950/60 sepia:bg-[#fbf5e6]">
           <div className="flex items-center space-x-3">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
               <HardDrive className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">Offline Reading Storage</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Cache page WebP images for 100% offline access</p>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                {language === 'ur' ? 'آف لائن قرآنی صفحات' : 'Offline Reading Storage'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {language === 'ur' ? 'بغیر انٹرنیٹ کے تلاوت کے لیے صفحات محفوظ کریں' : 'Cache page WebP images for 100% offline access'}
+              </p>
             </div>
           </div>
           <button
@@ -116,9 +127,11 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose 
           {/* Storage Summary Card */}
           <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl">
             <div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Pages Cached for Offline</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                {language === 'ur' ? 'آف لائن محفوظ شدہ صفحات' : 'Pages Cached for Offline'}
+              </div>
               <div className="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
-                {cachedCount} / {TOTAL_PAGES} Pages ({Math.round((cachedCount / TOTAL_PAGES) * 100)}%)
+                {cachedCount} / {TOTAL_PAGES} {language === 'ur' ? 'صفحات' : 'Pages'} ({Math.round((cachedCount / TOTAL_PAGES) * 100)}%)
               </div>
             </div>
             {cachedCount > 0 && (
@@ -127,7 +140,7 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose 
                 className="flex items-center space-x-1 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Clear</span>
+                <span>{language === 'ur' ? 'صاف کریں' : 'Clear'}</span>
               </button>
             )}
           </div>
