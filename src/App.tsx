@@ -41,7 +41,7 @@ export function App() {
 
   const { theme, toggleTheme, setTheme } = useTheme();
   const { allBookmarks, addBookmark, removeBookmark, updateBookmarkNote } = useBookmarks(activePage);
-  const { userName, saveUserName, isFirstVisit, setIsFirstVisit, completeFirstVisit } = useUserProfile();
+  const { userName, saveUserName, isFirstVisit, completeFirstVisit } = useUserProfile();
 
   // PWA Install Prompt State
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -217,6 +217,7 @@ export function App() {
           onSelectView={setActiveView}
           theme={theme}
           onToggleTheme={toggleTheme}
+          onSetTheme={setTheme}
           language={language}
           onToggleLanguage={toggleLanguage}
           canInstall={canInstall}

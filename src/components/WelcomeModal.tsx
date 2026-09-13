@@ -17,7 +17,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   initialName = '',
   onSaveName,
   onClose,
-  canInstall = false,
+  canInstall: _canInstall = false,
   onInstallApp,
   language = 'en'
 }) => {

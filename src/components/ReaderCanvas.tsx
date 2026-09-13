@@ -339,8 +339,8 @@ export const ReaderCanvas: React.FC<ReaderCanvasProps> = ({
         )}
       </div>
 
-      {/* Quick Page Scrubber Bar (Floating at Bottom Center) */}
-      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] left-1/2 -translate-x-1/2 z-40 hidden xs:flex items-center space-x-2.5 px-3.5 py-1.5 bg-white/90 dark:bg-slate-900/90 sepia:bg-[#f2e9d2]/90 border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-2xl shadow-xl backdrop-blur-md text-xs text-slate-800 dark:text-white sepia:text-[#2d2417] max-w-[90vw]">
+      {/* Quick Page Scrubber Bar (Floating at Bottom Center for Tablet & Desktop) */}
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] left-1/2 -translate-x-1/2 z-30 hidden md:flex items-center space-x-2.5 px-3.5 py-1.5 bg-white/90 dark:bg-slate-900/90 sepia:bg-[#f2e9d2]/90 border border-slate-200 dark:border-slate-800 sepia:border-[#dfd3b9] rounded-2xl shadow-xl backdrop-blur-md text-xs text-slate-800 dark:text-white sepia:text-[#2d2417] max-w-[90vw]">
         <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold whitespace-nowrap">
           {language === 'ur' ? `صفحہ ${toArabicNumerals(activePage)}` : `Pg ${activePage}`}
         </span>

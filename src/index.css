@@ -3,6 +3,7 @@
 @theme {
   --font-urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Nafees Nastaleeq', 'Urdu Typesetting', 'Alvi Nastaleeq', 'Amiri', serif;
   --font-quran: 'Amiri', 'Scheherazade New', 'Traditional Arabic', 'Arabic Typesetting', 'Noto Naskh Arabic', serif;
+  --breakpoint-xs: 420px;
 }
 
 :root {
@@ -183,14 +184,24 @@ input[type="range"].accent-emerald-500::-moz-range-thumb {
   transform: none;
 }
 
-/* Calm Micro-Animations */
+/* Calm, Buttery-Smooth GPU-Composited Micro-Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.995); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes menuEnter {
+  from { opacity: 0; transform: scale(0.92) translateY(-6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -200,15 +211,27 @@ input[type="range"].accent-emerald-500::-moz-range-thumb {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.18s cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-popIn {
+  animation: popIn 0.16s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top right;
 }
 
 .animate-slideUp {
-  animation: slideUp 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slideLeft {
-  animation: slideLeft 0.24s cubic-bezier(0.2, 0, 0, 1) forwards;
+  animation: slideLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* GPU Hardware Acceleration Helper */
+.gpu-accel {
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 /* Accessibility Focus Ring */

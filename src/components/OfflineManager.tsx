@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Download, HardDrive, Trash2, X, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Download, HardDrive, Trash2, X } from 'lucide-react';
 import { db } from '../db/database';
 import { generateFallbackPageDataUrl } from '../utils/pageFallback';
 import quranMeta from '../data/quran_meta.json';
@@ -21,7 +21,7 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose,
   const [selectedSurahId, setSelectedSurahId] = useState<number>(1);
 
   // Load count of offline cached pages from IndexedDB & CacheStorage
-  const refreshCacheCount = async () => {
+  const refreshCacheCount = useCallback(async () => {
     try {
       let count = await db.offlinePages.count();
       if ('caches' in window) {
@@ -38,12 +38,12 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose,
     } catch (e) {
       console.warn("Failed to read offline cache count:", e);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    let isActive = true;
+    let isMounted = true;
     if (isOpen) {
-      (async () => {
+      Promise.resolve().then(async () => {
         try {
           let count = await db.offlinePages.count();
           if ('caches' in window) {
@@ -56,16 +56,16 @@ export const OfflineManager: React.FC<OfflineManagerProps> = ({ isOpen, onClose,
               // ignore
             }
           }
-          if (isActive) {
+          if (isMounted) {
             setCachedCount(count);
           }
         } catch (e) {
           console.warn("Failed to read offline cache count:", e);
         }
-      })();
+      });
     }
     return () => {
-      isActive = false;
+      isMounted = false;
     };
   }, [isOpen]);
 

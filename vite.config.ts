@@ -5,6 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './',
+  server: {
+    host: true
+  },
+  build: {
+    target: ['es2020', 'edge88', 'firefox78', 'chrome87', 'safari14'],
+    cssTarget: ['chrome80', 'safari14', 'firefox78']
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -34,27 +42,27 @@ export default defineConfig({
         background_color: '#090d16',
         display: 'standalone',
         orientation: 'any',
-        start_url: '/',
+        start_url: './',
         icons: [
           {
-            src: '/pwa-192x192.png',
+            src: 'pwa-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/pwa-512x512.png',
+            src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/apple-touch-icon.png',
+            src: 'apple-touch-icon.png',
             sizes: '180x180',
             type: 'image/png'
           }
         ],
-        scope: '/'
+        scope: './'
       },
       workbox: {
         clientsClaim: true,
