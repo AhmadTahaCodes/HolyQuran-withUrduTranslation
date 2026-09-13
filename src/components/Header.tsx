@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={`overflow-hidden transition-[max-width,opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] transform-gpu will-change-[max-width,opacity,transform] flex items-center ${
               activeView === 'reader'
                 ? 'max-w-0 opacity-0 -translate-x-2 scale-95 pointer-events-none'
-                : 'max-w-10 sm:max-w-52 opacity-100 translate-x-0 scale-100 pointer-events-auto'
+                : 'max-w-xs opacity-100 translate-x-0 scale-100 pointer-events-auto'
             }`}
           >
             <button
@@ -121,7 +121,11 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center Section: Unified Segmented Navigation Tabs & Reader Controls */}
         <div className="flex items-center justify-center min-w-0 flex-1 px-1 sm:px-2">
           {/* Segmented Navigation Tabs (Desktop & Tablet) */}
-          <div className="hidden md:flex items-center relative bg-slate-100 dark:bg-slate-950/80 sepia:bg-[#f2e9d2] p-1 rounded-2xl border border-slate-200 dark:border-slate-800/90 sepia:border-[#dfd3b9] text-xs shadow-xs select-none flex-shrink-0">
+          <div
+            className={`${
+              activeView === 'reader' ? 'hidden lg:flex' : 'hidden sm:flex'
+            } items-center relative bg-slate-100 dark:bg-slate-950/80 sepia:bg-[#f2e9d2] p-1 rounded-2xl border border-slate-200 dark:border-slate-800/90 sepia:border-[#dfd3b9] text-xs shadow-xs select-none flex-shrink-0`}
+          >
             {/* Fluid Sliding Background Indicator Pill */}
             <div
               className="absolute top-1 bottom-1 rounded-xl bg-emerald-600 shadow-sm transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none transform-gpu will-change-transform"
